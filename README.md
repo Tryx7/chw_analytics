@@ -60,6 +60,8 @@ cd chw_analytics
 # Create Environment
 python3 -m venv cap-dbt-env
 
+source cap-dbt-env/bin/activate
+
 # Install dbt
 pip install dbt-postgres
 
