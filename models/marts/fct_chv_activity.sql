@@ -7,11 +7,6 @@ populated from your source data system.
 
 Grain: One row per CHW activity/visit
 Primary Key: activity_id
-
-Notes for reviewers:
-- Rows with NULL chv_id or activity_date are excluded (data quality issues)
-- Rows where is_deleted = true are excluded
-- Only valid, non-deleted CHW activities are included
 */
 
 {{
@@ -20,6 +15,9 @@ Notes for reviewers:
         tags=['marts', 'fact']
     )
 }}
+
+-- For this assignment, we'll use a CTE with sample data
+-- In production, this would be: select * from {{ source('raw', 'chv_activities') }}
 
 with sample_data as (
     select * from (
@@ -30,28 +28,30 @@ with sample_data as (
         ('ACT_003', 'CHV001', '2025-01-12'::date, '2025-01-12 10:15:00'::timestamp, 'child_assessment', 'HH002', 'PAT002', 'LOC_BUSIA_01', false, '2025-01-13 08:00:00'::timestamp, '2025-01-13 08:00:00'::timestamp),
         ('ACT_004', 'CHV001', '2025-01-15'::date, '2025-01-15 14:20:00'::timestamp, 'pregnancy_visit', 'HH001', 'PAT001', 'LOC_BUSIA_01', false, '2025-01-16 08:00:00'::timestamp, '2025-01-16 08:00:00'::timestamp),
         ('ACT_005', 'CHV001', '2025-01-28'::date, '2025-01-28 16:00:00'::timestamp, 'family_planning', 'HH003', 'PAT003', 'LOC_BUSIA_01', false, '2025-01-29 08:00:00'::timestamp, '2025-01-29 08:00:00'::timestamp),
-
+        
         -- CHV002: Another active CHW
         ('ACT_006', 'CHV002', '2025-01-08'::date, '2025-01-08 09:00:00'::timestamp, 'household_registration', 'HH004', null, 'LOC_BUSIA_02', false, '2025-01-09 08:00:00'::timestamp, '2025-01-09 08:00:00'::timestamp),
         ('ACT_007', 'CHV002', '2025-01-10'::date, '2025-01-10 13:30:00'::timestamp, 'child_assessment', 'HH004', 'PAT004', 'LOC_BUSIA_02', false, '2025-01-11 08:00:00'::timestamp, '2025-01-11 08:00:00'::timestamp),
         ('ACT_008', 'CHV002', '2025-01-10'::date, '2025-01-10 14:00:00'::timestamp, 'child_assessment', 'HH005', 'PAT005', 'LOC_BUSIA_02', false, '2025-01-11 08:00:00'::timestamp, '2025-01-11 08:00:00'::timestamp),
         ('ACT_009', 'CHV002', '2025-01-27'::date, '2025-01-27 11:00:00'::timestamp, 'pregnancy_visit', 'HH006', 'PAT006', 'LOC_BUSIA_02', false, '2025-01-28 08:00:00'::timestamp, '2025-01-28 08:00:00'::timestamp),
-
+        
         -- CHV003: Edge case - only activities after the 26th
         ('ACT_010', 'CHV003', '2025-01-26'::date, '2025-01-26 10:00:00'::timestamp, 'family_planning', 'HH007', 'PAT007', 'LOC_KISUMU_01', false, '2025-01-27 08:00:00'::timestamp, '2025-01-27 08:00:00'::timestamp),
         ('ACT_011', 'CHV003', '2025-01-31'::date, '2025-01-31 15:00:00'::timestamp, 'family_planning', 'HH007', 'PAT007', 'LOC_KISUMU_01', false, '2025-02-01 08:00:00'::timestamp, '2025-02-01 08:00:00'::timestamp),
-
+        
+        -- Data quality issues (should be filtered out):
+        ('ACT_012', null, '2025-01-20'::date, '2025-01-20 10:00:00'::timestamp, 'pregnancy_visit', 'HH008', 'PAT008', 'LOC_BUSIA_03', false, '2025-01-21 08:00:00'::timestamp, '2025-01-21 08:00:00'::timestamp),
+        ('ACT_013', 'CHV004', null, null, 'child_assessment', 'HH009', 'PAT009', 'LOC_BUSIA_03', false, '2025-01-21 08:00:00'::timestamp, '2025-01-21 08:00:00'::timestamp),
+        ('ACT_014', 'CHV005', '2025-01-18'::date, '2025-01-18 12:00:00'::timestamp, 'pregnancy_visit', 'HH010', 'PAT010', 'LOC_BUSIA_03', true, '2025-01-19 08:00:00'::timestamp, '2025-01-19 08:00:00'::timestamp),
+        
         -- CHV with February activities
         ('ACT_015', 'CHV001', '2025-02-05'::date, '2025-02-05 10:00:00'::timestamp, 'pregnancy_visit', 'HH011', 'PAT011', 'LOC_BUSIA_01', false, '2025-02-06 08:00:00'::timestamp, '2025-02-06 08:00:00'::timestamp),
         ('ACT_016', 'CHV001', '2025-02-10'::date, '2025-02-10 14:00:00'::timestamp, 'child_assessment', 'HH012', 'PAT012', 'LOC_BUSIA_01', false, '2025-02-11 08:00:00'::timestamp, '2025-02-11 08:00:00'::timestamp),
-
+        
         -- Year boundary edge case (December → January next year)
         ('ACT_017', 'CHV006', '2024-12-26'::date, '2024-12-26 10:00:00'::timestamp, 'pregnancy_visit', 'HH013', 'PAT013', 'LOC_VIHIGA_01', false, '2024-12-27 08:00:00'::timestamp, '2024-12-27 08:00:00'::timestamp),
         ('ACT_018', 'CHV006', '2024-12-31'::date, '2024-12-31 16:00:00'::timestamp, 'child_assessment', 'HH013', 'PAT014', 'LOC_VIHIGA_01', false, '2025-01-02 08:00:00'::timestamp, '2025-01-02 08:00:00'::timestamp)
-    ) as t(
-        activity_id, chv_id, activity_date, activity_timestamp, activity_type,
-        household_id, patient_id, location_id, is_deleted, created_at, updated_at
-    )
+    ) as t(activity_id, chv_id, activity_date, activity_timestamp, activity_type, household_id, patient_id, location_id, is_deleted, created_at, updated_at)
 )
 
 select
