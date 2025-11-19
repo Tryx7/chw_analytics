@@ -1,0 +1,12 @@
+version: 2
+
+sources:
+  - name: raw
+    description: Raw source tables for CHW activity data.
+    schema: raw               # Change to your actual schema if different
+    tables:
+      - name: chv_activities
+        description: |
+          Raw CHW activity events extracted from the source system.
+          This table contains one record per activity and is the origin
+          of all downstream transformations.

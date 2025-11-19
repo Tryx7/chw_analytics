@@ -1,0 +1,89 @@
+version: 2
+
+models:
+  - name: fct_chv_activity
+    description: Fact table containing raw CHW activity records.
+    meta:
+      owner: "Analytics Team"
+      created_date: "2025-11-19"
+      update_frequency: "Daily"
+
+    columns:
+      - name: activity_id
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - unique:
+              config:
+                severity: error
+
+      - name: chv_id
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: activity_date
+        data_type: date
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: activity_timestamp
+        data_type: timestamp
+
+      - name: activity_type
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: location_id
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: warn
+
+      - name: is_deleted
+        data_type: boolean
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: created_at
+        data_type: timestamp
+
+      - name: updated_at
+        data_type: timestamp
+        tests:
+          - not_null:
+              config:
+                severity: warn
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - activity_id
+          config:
+            severity: error
+
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "activity_type in ('pregnancy_visit','child_assessment','family_planning','household_registration')"
+          config:
+            severity: warn
+            where: "activity_type is not null"
+
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "updated_at <= current_timestamp"
+          config:
+            severity: warn

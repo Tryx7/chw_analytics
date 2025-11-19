@@ -1,0 +1,142 @@
+version: 2
+
+models:
+  - name: chw_activity_monthly
+    description: |
+      Monthly aggregated view of Community Health Worker (CHW) activities.
+      ...
+    meta:
+      owner: "Analytics Team"
+      created_date: "2025-11-19"
+      update_frequency: "Daily"
+
+    columns:
+      - name: chv_id
+        description: Unique identifier for CHW.
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+          # TEMPORARILY REMOVED because dim_chv does NOT exist
+          # - relationships:
+          #     to: ref('dim_chv')
+          #     field: chv_id
+          #     config:
+          #       severity: warn
+          #       where: "chv_id is not null"
+
+      - name: report_month
+        data_type: date
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: total_activities
+        data_type: integer
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: ">= 0"
+              config:
+                severity: error
+
+      - name: unique_households_visited
+        data_type: integer
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: ">= 0"
+              config:
+                severity: error
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: "<= total_activities"
+              config:
+                severity: warn
+
+      - name: unique_patients_served
+        data_type: integer
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: ">= 0"
+              config:
+                severity: error
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: "<= total_activities"
+              config:
+                severity: warn
+
+      - name: pregnancy_visits
+        data_type: integer
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: ">= 0"
+              config:
+                severity: error
+
+      - name: child_assessments
+        data_type: integer
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: ">= 0"
+              config:
+                severity: error
+
+      - name: family_planning_visits
+        data_type: integer
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: ">= 0"
+              config:
+                severity: error
+
+      - name: updated_at
+        data_type: timestamp
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - chv_id
+              - report_month
+          config:
+            severity: error
+
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "pregnancy_visits + child_assessments + family_planning_visits <= total_activities"
+          config:
+            severity: error
+
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "pregnancy_visits + child_assessments + family_planning_visits > 0"
+          config:
+            severity: warn
+            where: "total_activities > 0"

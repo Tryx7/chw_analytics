@@ -1,0 +1,39 @@
+name: 'chw_analytics'
+version: '1.0.0'
+config-version: 2
+
+profile: 'chw_analytics'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  chw_analytics:
+
+    staging:
+      +materialized: view
+      +schema: staging
+
+    marts:
+      +materialized: table
+      +schema: marts
+
+    metrics:
+      +materialized: incremental
+      +schema: metrics
+      +on_schema_change: "sync_all_columns"
+
+vars:
+  default_start_date: '2023-01-01'
+
+dispatch:
+  - macro_namespace: dbt_utils
+    search_order: ['dbt_utils']
