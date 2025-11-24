@@ -235,13 +235,6 @@ This model enables:
 **LuxDevHQ Analytics Team**  
 Week 15 Final Assignment - dbt Monthly Aggregation
 
-## Questions or Issues?
-
-For questions about this implementation:
-1. Review the business requirements in `/docs`
-2. Check the schema documentation
-3. Run `dbt docs serve` for interactive documentation
-4. Contact the analytics team
 
 ---
 
